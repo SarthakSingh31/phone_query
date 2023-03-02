@@ -3,6 +3,10 @@ use clap::Parser;
 
 #[derive(Parser, Debug)]
 struct Args {
+    /// Sets/Appends contact points. This *MUST* be set
+    /// Ex. "127.0.0.1" "127.0.0.1,127.0.0.2", "server1.domain.com"
+    #[arg(short)]
+    contact_points: String,
     /// Phone number to filter on
     #[arg(long)]
     filter_user_phone_number: Option<String>,
@@ -43,10 +47,8 @@ fn main() {
 
     let query = stmt!("SELECT * FROM calldrop.userdata;");
 
-    let contact_points = "127.0.0.1";
-
     let mut cluster = Cluster::default();
-    cluster.set_contact_points(contact_points).unwrap();
+    cluster.set_contact_points(&args.contact_points).unwrap();
     cluster.set_load_balance_round_robin();
 
     match cluster.connect() {
