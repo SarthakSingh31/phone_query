@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use cassandra_cpp::*;
 use clap::Parser;
 
@@ -7,6 +9,9 @@ struct Args {
     /// Ex. "127.0.0.1" "127.0.0.1,127.0.0.2", "server1.domain.com"
     #[arg(short)]
     contact_points: String,
+    /// SSL cert to use while connecting
+    #[arg(short, long)]
+    ssl_cert_path: Option<PathBuf>,
     /// Phone number to filter on
     #[arg(long)]
     filter_user_phone_number: Option<String>,
@@ -50,6 +55,18 @@ fn main() {
     let mut cluster = Cluster::default();
     cluster.set_contact_points(&args.contact_points).unwrap();
     cluster.set_load_balance_round_robin();
+
+    if let Some(ssl_cert_path) = args.ssl_cert_path {
+        let mut ssl = Ssl::default();
+        let cert = std::fs::read_to_string(ssl_cert_path).expect("Failed to read file");
+
+        ssl.add_trusted_cert(cert.as_str())
+            .expect("Failed to add ssl cert");
+
+        ssl.set_verify_flags(&[SslVerifyFlag::PEER_IDENTITY]);
+
+        cluster.set_ssl(&mut ssl);
+    }
 
     match cluster.connect() {
         Ok(ref mut session) => {
